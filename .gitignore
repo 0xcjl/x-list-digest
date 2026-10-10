@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.py[cod]
+node_modules/
+demo-output/
+integration/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.*
+!.env.example
+*.zip
+.x-list-digest-install.json
