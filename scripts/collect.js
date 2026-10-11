@@ -1,24 +1,38 @@
-// Evaluate this function through browser_exec(local=true) on the current X page.
+// Read-only snapshot through the native host; scroll uses its mouse-wheel helper.
 () => {
   const text = document.body.innerText;
-  const status = /verify you are human|suspicious activity|验证码/i.test(text) ? 'captcha'
+  const status = /verify you are human|suspicious activity|\u9a8c\u8bc1\u7801/i.test(text) ? 'captcha'
     : /\/login|login\.x\.com/.test(location.href) ? 'login_required'
-    : /rate limit|too many requests|请求过多/i.test(text) ? 'rate_limited' : 'ok';
+    : /rate limit|too many requests|\u8bf7\u6c42\u8fc7\u591a/i.test(text) ? 'rate_limited' : 'ok';
   const tweets = [...document.querySelectorAll('article[data-testid="tweet"]')].flatMap(a => {
-    const time = a.querySelector('time[datetime]');
-    const link = time?.closest('a');
-    const match = link?.getAttribute('href')?.match(/^\/([^/]+)\/status\/(\d+)/);
-    if (!match || !time) return [];
+    const path = t => { const href=t.closest('a')?.getAttribute('href'); return href ? new URL(href,location.href).pathname : ''; };
+    const time = [...a.querySelectorAll('time[datetime]')].find(t => /^\/[^/]+\/status\/\d+$/.test(path(t)));
+    let link = time?.closest('a');
+    let match = time ? path(time).match(/^\/([^/]+)\/status\/(\d+)/) : null;
+    let rootTime = time;
+    if (!match && a === document.querySelector('article[data-testid="tweet"]')) {
+      match = location.pathname.match(/^\/([^/]+)\/status\/(\d+)$/);
+      rootTime = a.querySelector('time[datetime]');
+      const handles = a.querySelector('[data-testid="User-Name"]')?.innerText || '';
+      if (!match || !handles.split(/\s/).includes('@'+match[1])) return [];
+    }
+    if (!match || !rootTime) return [];
     const count = key => {
-      const label = a.querySelector(`[data-testid="${key}"]`)?.getAttribute('aria-label') || '';
-      const n = label.match(/[\d,.]+\s*[KM]?/i)?.[0] || '0';
-      return Math.round(parseFloat(n.replace(/,/g,'')) * (/M/i.test(n)?1e6:/K/i.test(n)?1e3:1));
+      const label = a.querySelector(`[data-testid="${key}"]${key==='like'?', [data-testid="unlike"]':''}`)?.getAttribute('aria-label') || '';
+      const n = label.match(/[\d,.]+\s*[KM]?/i)?.[0];
+      if (!n) return null;
+      const value = parseFloat(n.replace(/,/g,''));
+      return Number.isFinite(value) ? Math.round(value * (/M/i.test(n)?1e6:/K/i.test(n)?1e3:1)) : null;
     };
-    return [{tweet_id:match[2],author_handle:match[1],timestamp_iso:time.dateTime,
-      url:'https://x.com'+link.getAttribute('href'),text:a.querySelector('[data-testid="tweetText"]')?.innerText || '',
+    return [{tweet_id:match[2],author_handle:match[1],timestamp_iso:rootTime.dateTime,
+      url:'https://x.com/'+match[1]+'/status/'+match[2],text:a.querySelector('[data-testid="tweetText"]')?.innerText || '',
       media:[...a.querySelectorAll('[data-testid="tweetPhoto"] img')].map(i=>({alt:i.alt,url:i.src})),
       engagement:{likes:count('like'),replies:count('reply'),reposts:count('retweet')},
-      expandable:/Show more|显示更多|Show this thread|显示此帖文串/i.test(a.innerText)}];
+      expandable:/Show more|\u663e\u793a\u66f4\u591a|Show this thread|\u663e\u793a\u6b64\u5e16\u6587\u4e32/i.test(a.innerText)}];
   });
-  return {status,logged_in:!!document.querySelector('[data-testid="AppTabBar_Profile_Link"]'),tweets};
+  const timeline=document.querySelector('[data-testid="primaryColumn"]');
+  const rect=timeline?.getBoundingClientRect();
+  return {status,logged_in:!!document.querySelector('[data-testid="AppTabBar_Profile_Link"]'),sorting:'unknown',
+    viewport:{x:rect?Math.max(1,Math.min(innerWidth-1,rect.x+rect.width/2)):innerWidth/2,y:innerHeight/2,height:innerHeight},
+    scroll_position:{y:window.scrollY,height:document.documentElement.scrollHeight,viewport_height:innerHeight},tweets};
 }

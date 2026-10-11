@@ -1,6 +1,5 @@
-# X DOM（易变）
-article[data-testid=tweet]；time[datetime]；time 最近父级 a 的 /handle/status/id；[data-testid=tweetText]。
-登录指示 [data-testid=AppTabBar_Profile_Link]；媒体 [data-testid=tweetPhoto] img。
-点赞/回复/转发按钮 data-testid=like/reply/retweet，aria-label 计数仅尽力提取。
-Quote tweet 不应替代外层主帖 ID；遇无法识别结构记录遗漏，人工检查采集脚本。
-scripts/collect.js 只读当前 DOM。导航/滚动/线程展开由宿主 browser_exec 控制。
+# X DOM selectors
+
+These are fragile browser observations, not a stable API. Use article[data-testid=tweet], time[datetime], the time's nearest status anchor and [data-testid=tweetText]. Match the outer target status link before using timestamps; quote posts must not substitute their IDs/times.
+
+Profile login indicator: [data-testid=AppTabBar_Profile_Link]. Media: [data-testid=tweetPhoto] img. Like/reply/repost counts are best-effort button aria-label observations; missing counts are null. collect.js reads current DOM only; host tools perform navigation, scrolling and expansion. Report structural omissions when selectors no longer match.

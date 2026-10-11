@@ -2,15 +2,10 @@ version: 2
 timezone: Asia/Bangkok
 default_window_hours: 24
 default_rhythm: conservative
-default_max_tweets: 100
+default_max_tweets: 500
 default_output: both
-lists:
-  primary:
-    name: 'X List 1894277899064414325'
-    url: 'https://x.com/i/lists/1894277899064414325'
+lists: {}
 browser:
   backend: host
-feishu:
-  backend: local-cli
-  executable: lark-cli
+feishu: null
 cron_jobs: []

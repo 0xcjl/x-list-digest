@@ -9,7 +9,7 @@ from persist import persist
 from common import write
 if __name__=='__main__':
     output=Path(sys.argv[1] if len(sys.argv)>1 else 'demo-output');output.mkdir(parents=True,exist_ok=True)
-    fixture=PipelineTest();fixture.setUp();fixture.meta['list_name']='离线合成演示（非真实X数据）'
+    fixture=PipelineTest();fixture.setUp();fixture.meta['list_name']='Offline synthetic demonstration（not realXdata）'
     rows=enrich(fixture.raw,fixture.analysis)
     write(output/'raw.json',fixture.raw);write(output/'enriched.json',rows);write(output/'metadata.json',fixture.meta)
     (output/'report.md').write_text(render(rows,fixture.meta))

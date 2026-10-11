@@ -1,7 +1,7 @@
-# 分类和分析约束
-crypto：加密资产/链上/代币；us_stock：美股；a_stock：A股；hk_stock：港股；macro：利率、通胀、央行、汇率；trading_psychology：交易纪律与心态；off_topic：与市场无关；other：信息不足或无法归类。
-主类取核心论点，跨市场可在 tickers/subcategory 保留。不可根据一两个关键词臆断。
-tickers 使用一致代码如 BTC、ETH、COIN、300308；不确定时空数组，勿把普通大写单词自动当标的。
-sentiment bullish/bearish/neutral/mixed；明确有入场/出场条件才 is_actionable=true。
-confidence high/med/low 是提取可靠性，不是投资收益概率。
-重度跑题：off_topic+other 占比≥50% 且作者总帖≥3；只提出建议，不自动移除成员。
+# Analysis taxonomy
+
+Categories: crypto (crypto assets/on-chain/tokens), us_stock (US equities/industry), hk_stock (Hong Kong equities), a_stock (mainland equities), macro (rates/inflation/central banks/FX), trading_psychology (discipline/mindset), off_topic (unrelated to markets), other (insufficient or unclassifiable evidence).
+
+Choose the core thesis, not isolated keywords. Keep cross-market details in tickers/subcategory. Unknown tickers are empty arrays; uppercase words and project names do not automatically imply tickers. Sentiment is bullish/bearish/neutral/mixed. Actionable requires explicit entry/exit conditions. Confidence high/med/low measures extraction reliability, not expected return.
+
+Only off_topic counts toward weekly author off-topic rate; other is not automatically off-topic. Fewer than three archive days means insufficient samples. Never automatically remove list members. Consensus requires cited posts from two independent authors, and each author has one sentiment vote per ticker.

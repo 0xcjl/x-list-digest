@@ -1,15 +1,21 @@
-# 抓取节奏
-|参数|default|conservative|aggressive|
-|---|---:|---:|---:|
-|滚动px|400|300|600|
-|随机停顿秒|1.5–3.5|3–6|0.8–1.8|
-|大停顿每N步|10|6|15|
-|大停顿秒|4–8|6–12|2–4|
-|最大步数|80|50|120|
-|rate limit等待秒|60|120|30|
-|总超时分钟|8|12|6|
+# Collection contract
 
-首次 conservative。每次浏览器调用后检查 deadline；等待按不超过60秒切分。
-连续5步无新帖 = exhausted_observed，仍不能证明所有帖子完整。步骤和帖子数量分开计数。
-错误页“出错了/重试”只是临时错误，不必然为限流；记录 transient_error，重试一次。
-停止原因包括 boundary_observed/max_tweets/max_steps/timeout/captcha/login_required/rate_limited/disconnected/exhausted_observed。
+| Parameter | default | conservative | aggressive |
+|---|---:|---:|---:|
+| Minimum scroll pixels | 400 | 600 | 600 |
+| Pause seconds | 1.5-3.5 | 1-2 | 0.8-1.8 |
+| Long pause every steps | 10 | 10 | 15 |
+| Long pause seconds | 4-8 | 3-5 | 2-4 |
+| Step ceiling | 80 | 300 | 120 |
+| Rate-limit backoff seconds | 60 | 120 | 30 |
+| Active time ceiling minutes | 8 | 45 | 6 |
+
+Start conservatively. For native scrolling use the greater of configured distance and 85% viewport height. Keep list and detail tabs separate. Count failures and expansion toward actual step/time limits. Split waits into segments of at most 60 seconds.
+
+The conservative daily count ceiling is 500; preserve all collected in-window posts when a whole batch exceeds it. Native invocations are limited to 1800 seconds and pause around 1500 seconds as invocation_budget. Resume the same run/session only through authorized supported resume with remaining cumulative budget. Never reset window, raw data, steps or elapsed active time.
+
+Freeze IDs from completed historical receipts. Archived posts are not new collection/analysis/detail work. List-visible IDs still provide pagination evidence. Only a batch without newly visible IDs contributes to the five-batch stall condition. Details do not advance pagination or window-boundary counters.
+
+Three old list batches must be nonempty, newly visible, wholly before window_start, descending within batch and move backward without reversals. Actual verified chronological ordering permits boundary_observed. Unknown ordering yields window_boundary_unverified and partial. Five batches without new visible IDs yield pagination_stalled when not at the bottom, otherwise exhausted_observed; both remain partial.
+
+Finish rechecks persisted events. Unexpanded text or unproved threads keep overall coverage partial, regardless of a separate window_coverage boundary. Steps and post counts are different metrics. Login/CAPTCHA stop immediately; clear rate limiting permits one backoff; repeated limits stop. Transient errors are not automatically rate limits. Stop reasons and original snapshots must reflect actual observations.

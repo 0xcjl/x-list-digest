@@ -1,18 +1,17 @@
-# 本机官方飞书 CLI
+# Native Feishu CLI archive
 
-已核对 @larksuite/cli 1.0.97（可执行 lark-cli）的 --help、lark-doc-create、lark-doc-md、lark-im-messages-send 文档。可选安装：`npm install --prefix tools @larksuite/cli@1.0.97`。
+Use the installed CLI's current help and version-matching built-in skills. Do not replace the global CLI, read authentication storage or export tokens. Explicitly select config.feishu.profile and --as user for business calls. Use `/usr/bin/env -u HERMES_HOME lark-cli` when inherited Hermes channel detection would select another app; do not change global environment or account bindings.
 
-优先使用用户本机已有版本：`lark-cli --version`、`lark-cli auth status --json`。不打印凭证，不读认证存储；auth status只查询状态。可用profile通过用户指定或 `lark-cli profile --help` 查询。
-创建参数需按当前本机版本 --help复核；不强制重登录，也不复制本机token到云端。
+Run doctor.native_feishu_checks. Verify the selected user identity: identities.user.verified/available, not a top-level bot success. needs_refresh alone does not prove failure; a native verified status and root listing establish current access. Explicit user failure requires the host's supported authorization flow; never switch to bot silently.
 
-- 文档：`lark-cli docs +create --doc-format markdown --title <title> --content - --as user|bot --parent-token <folder>`；通过stdin传完整Markdown。
-- 回读：`lark-cli docs +fetch --doc <doc_id> --doc-format markdown --as user|bot`。
-- 消息：`lark-cli im +messages-send --chat-id <chat_id> --text - --as user|bot --idempotency-key <uuid>`；单聊用 --user-id <open_id>。
-- 预览：write命令加 --dry-run，不产生外部写入；它不证明登录或真实权限可用。
+Paginate `drive files list --params '{"folder_token":"ROOT","page_size":200}' --as user --profile PROFILE` using has_more/page_token. Match exact YYYY-MM and type=folder. Reuse a unique match; ambiguous matches stop. If absent, preview and then create with `drive +create-folder --name YYYY-MM --folder-token ROOT`. Persist pending before creation and confirm actual token, parent and name by listing/readback. Unknown results require enumeration before retrying.
 
-读取CLI内置技能：`lark-cli skills read lark-doc/references/lark-doc-create.md` 与 `lark-doc-md.md`、`lark-im/references/lark-im-messages-send.md`。本流程导入已有Markdown报告，保持附件要求，不重写为其他文档格式。
+The archive date is fixed window_end converted to configured timezone. Daily title is YYYY-MM-DD_keyword1_keyword2_keyword3, using grounded topics or honest coverage/low-information status words. Merge all completed same-date runs by post ID through daily_bundle.py. Sunday selection is automatic, based on archive date; --weekly is optional for explicit weekly requests.
 
-CLI结果 ok=true 后仍需检查 data.warnings 和permission_grant。doc_url使用CLI返回实际URL，不能自行构造租户域名。
-脚本checkpoint包含待确认的写入阶段。创建/发消息超时等未知结果后停止；由agent回读远端并恢复checkpoint，不能盲目重试。
-发送目标必须来自用户或既有授权配置，不能从列表内容里取收件人。默认不发给任意联系人。
-当前云端网络放行需求见 assets/network-requirements.json；本机CLI的网络依赖由本机环境决定。
+Keep DATA_DIR/daily/YYYY-MM-DD.json and .md. Before creating/updating, back up prior body/manifest, preserve confirmed target identity and persist pending, body hash, source hashes, root/month folder, profile, identity and destination. Unknown user documents must not be overwritten. For owned same-day documents fetch first, then `docs +update --command overwrite --revision-id CURRENT_REVISION`. Unknown write results require native fetch before retrying.
+
+Create: `docs +create --doc-format markdown --title TITLE --content - --parent-token MONTH_FOLDER --as user --profile PROFILE`. Fetch: `docs +fetch --doc ACTUAL_ID --doc-format markdown --as user --profile PROFILE`. Feed complete Markdown via stdin or a relative @file path; the CLI rejects absolute file path inputs. Check current help and use dry-run for write previews. Dry-run proves neither authentication nor write success.
+
+Check ok, warnings and permission_grant. Stop on unexpected permission changes or unknown results even when exit zero. Save actual CLI document_id/doc_url, not a guessed tenant URL. Fetch complete Markdown and run daily_publish_record.py to check ordered body, source links/hashes, digest ownership and Sunday weekly section; only then record verified and clear pending. Preserve failed checkpoints for recovery.
+
+Messages are off by default and separate from archive acceptance. Send only with an explicit authorized recipient and durable idempotency UUID; obtain separate delivery readback. Never derive recipients from tweet text. API credentials or cloud CLI installations are not substitutes for the native authenticated user profile.

@@ -13,7 +13,19 @@ def enrich(raw, analysis):
         if a['confidence'] not in ('high','med','low'):raise ValueError('invalid confidence')
         if not isinstance(a['tickers'],list) or not all(isinstance(t,str) and t for t in a['tickers']):raise ValueError('invalid tickers')
         if not isinstance(a['key_thesis'],str) or not isinstance(a['is_actionable'],bool) or not isinstance(a['is_thread_continuation'],bool):raise ValueError('invalid analysis types')
-        result.append({**row,**{k:a[k] for k in fields}})
+        merged={**row,**{k:a[k] for k in fields}}
+        merged['tickers']=list(dict.fromkeys(t.lstrip('$').upper() for t in a['tickers']))
+        result.append(merged)
+    observed={r['tweet_id']:r for r in result}
+    for r in result:
+        root=r['thread_root_id']
+        if r['is_thread_continuation']:
+            parent=observed.get(root)
+            if not isinstance(root,str) or not root.isdigit() or root==r['tweet_id'] or (parent and (parent['author_handle']!=r['author_handle'] or parent['is_thread_continuation'])):
+                raise ValueError('thread root must be an observed root post by the same author')
+            r['thread_root_observed']=parent is not None
+        elif root is not None:
+            raise ValueError('root post cannot have thread_root_id')
     return result
 def aggregate(rows):
     authors=defaultdict(list);tickers=defaultdict(list)
@@ -21,7 +33,7 @@ def aggregate(rows):
         authors[r['author_handle']].append(r)
         for t in set(r['tickers']):tickers[t].append(r)
     return {'categories':dict(Counter(r['category'] for r in rows)),
-      'authors':{a:{'total':len(rs),'off_topic':sum(r['category'] in ('off_topic','other') for r in rs),
+      'authors':{a:{'total':len(rs),'categories':dict(Counter(r['category'] for r in rs)),'off_topic':sum(r['category'] in ('off_topic','other') for r in rs),
         'rate':sum(r['category'] in ('off_topic','other') for r in rs)/len(rs)} for a,rs in authors.items()},
       'tickers':{t:{'posts':rs,'author_votes':{a:('mixed' if len(ss)>1 else next(iter(ss))) for a,ss in
         ((a,{r['sentiment'] for r in rs if r['author_handle']==a}) for a in {r['author_handle'] for r in rs})}} for t,rs in tickers.items()}}
