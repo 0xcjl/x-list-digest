@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 from collector_record import record,freeze_history
 from common import iso,write
+from browser_tabs import OwnedTabs
 
 
 def authorize_resume(directory,maximum=500,max_steps=300,timeout_seconds=2700):
@@ -34,27 +35,54 @@ def authorize_resume(directory,maximum=500,max_steps=300,timeout_seconds=2700):
 def run_native(directory,resume=False):
     """Run only inside Hermes browser_exec using its installed native helpers."""
     from browser_harness import helpers
-    meta=json.loads((Path(directory)/'metadata.json').read_text())
+    directory=Path(directory)
+    meta=json.loads((directory/'metadata.json').read_text())
+    owner=OwnedTabs(directory,helpers)
     if resume:
         tab=helpers.current_tab()
         if (tab.get('url') or '').split('?')[0]!=meta['list_url']:
             raise ValueError('Resume requires the same session attached to its list tab')
         list_tab=tab['targetId']
+        if owner.state['tabs'].get(list_tab,{}).get('role')!='list':
+            raise ValueError('Resume requires the recorded run-owned list tab')
         authorize_resume(directory)
     else:
-        list_tab=helpers.new_tab(meta['list_url']);helpers.wait_for_load()
+        if owner.path.exists() or meta.get('collector_stopped') or meta.get('steps'):
+            raise ValueError('Use a fresh run or resume the recorded paused run')
+        owner.sweep()
+        list_tab=None
     detail_tab=None
     def navigate(url):
         nonlocal detail_tab
         if url:
             if detail_tab is None:
-                detail_tab=helpers.new_tab(url)
+                detail_tab=owner.create('detail',url)
+                helpers.switch_tab(detail_tab,activate=True)
             else:
-                helpers.switch_tab(detail_tab);helpers.goto_url(url)
+                helpers.switch_tab(detail_tab,activate=True);owner.destination(detail_tab,url)
             helpers.wait_for_load()
         else:
-            helpers.switch_tab(list_tab)
-    return collect(directory,helpers.js,helpers.scroll,navigate,resume=resume)
+            helpers.switch_tab(list_tab,activate=True)
+    owner.state['state']='active';owner.save()
+    result=None
+    try:
+        if list_tab is None:
+            list_tab=owner.create('list',meta['list_url']);helpers.wait_for_load()
+        helpers.switch_tab(list_tab,activate=True)
+        result=collect(directory,helpers.js,helpers.scroll,navigate,resume=resume)
+        return result
+    except Exception as error:
+        current=json.loads((directory/'metadata.json').read_text())
+        current['collector_stopped']=True;current['stop_reason']='browser_exception';current['coverage']='partial'
+        write(directory/'metadata.json',current)
+        write(directory/'browser-error.json',{'error_type':type(error).__name__,'steps':current['steps']})
+        raise
+    finally:
+        paused=result is not None and result.get('stop') in ('invocation_budget','max_steps','max_tweets','timeout')
+        try:
+            owner.finish('paused' if paused else 'finished' if result is not None else 'failed',keep=list_tab if paused else None)
+        except OSError as cleanup_error:
+            print(json.dumps({'browser_cleanup_warning':type(cleanup_error).__name__}),flush=True)
 
 
 def collect(directory,js,scroll,navigate,*,resume=False,clock=time.monotonic,sleep=time.sleep,choose=random.uniform):

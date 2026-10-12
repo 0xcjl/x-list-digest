@@ -11,6 +11,43 @@ from host_collector import collect,run_native,authorize_resume
 
 
 class HostCollectorTest(unittest.TestCase):
+    def test_cleanup_save_error_does_not_mask_browser_exception(self):
+        from test_browser_tabs import Browser
+        with tempfile.TemporaryDirectory() as d:
+            run=Path(initialize({'lists':{}},['https://x.com/i/lists/1'],d)[0]['run_dir'])
+            browser=Browser();browser.wait_for_load=lambda:None;browser.switch_tab=lambda key,activate=False:None
+            browser.js=lambda _:None;browser.scroll=lambda *a,**k:None
+            def fail(*args,**kwargs):raise TimeoutError('original')
+            with patch.dict(sys.modules,{'browser_harness':SimpleNamespace(helpers=browser)}),patch('host_collector.collect',fail),patch('host_collector.OwnedTabs.finish',side_effect=OSError('cleanup')):
+                with self.assertRaisesRegex(TimeoutError,'original'):run_native(run)
+            meta=json.loads((run/'metadata.json').read_text())
+            self.assertEqual(meta['stop_reason'],'browser_exception')
+            self.assertEqual(meta['coverage'],'partial')
+            self.assertTrue((run/'browser-error.json').exists())
+
+    def test_native_budget_pause_keeps_owned_list_for_resume(self):
+        from test_browser_tabs import Browser
+        for reason in ('invocation_budget','max_steps','max_tweets','timeout'):
+            with tempfile.TemporaryDirectory() as d:
+                run=Path(initialize({'lists':{}},['https://x.com/i/lists/1'],d)[0]['run_dir'])
+                browser=Browser()
+                browser.wait_for_load=lambda:None
+                browser.switch_tab=lambda key,activate=False:setattr(browser,'current',key)
+                browser.current_tab=lambda:{'targetId':browser.current,'url':browser.tabs[browser.current]}
+                browser.js=lambda _:None;browser.scroll=lambda *a,**k:None
+                def stop(*args,**kwargs):
+                    meta=json.loads((run/'metadata.json').read_text())
+                    meta.update(collector_stopped=True,stop_reason=reason,steps=1)
+                    (run/'metadata.json').write_text(json.dumps(meta))
+                    return {'stop':reason}
+                with patch.dict(sys.modules,{'browser_harness':SimpleNamespace(helpers=browser)}),patch('host_collector.collect',stop):
+                    run_native(run)
+                    target=browser.current
+                    self.assertEqual(json.loads((run/'browser-tabs.json').read_text())['state'],'paused')
+                    run_native(run,resume=True)
+                    self.assertEqual(browser.current,target)
+                    self.assertEqual(browser.n,1)
+
     def test_detail_budget_stop_returns_to_list_and_segment_is_audited(self):
         for segment in (False,True):
             with tempfile.TemporaryDirectory() as d:
@@ -65,8 +102,11 @@ class HostCollectorTest(unittest.TestCase):
                 state['n']+=1;tab=str(state['n']);state['tab']=tab
                 state['urls'][tab]=url;state['positions'][tab]=0;return tab
             def goto(url):state['urls'][state['tab']]=url;state['positions'][state['tab']]=0
-            def switch(tab):state['tab']=tab
-            helpers=SimpleNamespace(new_tab=new_tab,wait_for_load=lambda:None,goto_url=goto,switch_tab=switch,js=lambda _:None,scroll=lambda *a,**k:None)
+            def switch(tab,activate=False):
+                self.assertTrue(activate)
+                state['tab']=tab
+            helpers=SimpleNamespace(new_tab=new_tab,wait_for_load=lambda:None,goto_url=goto,switch_tab=switch,js=lambda _:None,scroll=lambda *a,**k:None,
+                                    list_tabs=lambda:[{'targetId':key,'url':url} for key,url in state['urls'].items()],close_tab=lambda key:state['urls'].pop(key))
             def fake_collect(directory,js,scroll,navigate,**kwargs):
                 list_tab=state['tab'];state['positions'][list_tab]=4200
                 navigate('https://x.com/a/status/1')
