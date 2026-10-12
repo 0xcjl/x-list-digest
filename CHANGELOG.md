@@ -2,6 +2,8 @@
 
 ## 2.0.1 - 2026-10-12
 
+- Add generic Simplified Chinese README and skill instructions on GitHub, with bidirectional language links; keep the ClawHub package English-only.
+
 - Activate native browser targets before list/detail interactions to avoid background-page wheel timeouts.
 - Track explicitly created tabs and close only matching owned targets; preserve budget resumes and user pages.
 - Clean terminal-run leftovers on startup and preserve original errors if cleanup persistence fails.

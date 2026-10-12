@@ -1,8 +1,10 @@
 # X List Digest
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 Collect authorized X lists, skip archived posts, and turn observed market viewpoints into one daily writing digest. Use a host agent for authenticated browsing and analysis; use deterministic scripts for fixed windows, limits, deduplication, Markdown and SQLite.
 
-Version 2.0.0 replaces the former standalone HTTP/CLI wrappers with a host-native workflow. No private list, credentials, Feishu destination or enabled job ships in this repository.
+The 2.x release replaces the former standalone HTTP/CLI wrappers with a host-native workflow. Version 2.0.1 adds native tab activation and ownership-based cleanup. No private list, credentials, Feishu destination or enabled job ships in this repository.
 
 ## Features
 

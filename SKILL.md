@@ -10,6 +10,8 @@ metadata:
 
 # X List Digest
 
+[English](SKILL.md) | [简体中文说明](SKILL.zh-CN.md)
+
 Use the host's authenticated browser and agent analysis. Package scripts record observations, enforce limits, validate analysis, and produce Markdown and SQLite archives. They do not supply credentials, independently log into X, register a scheduler, or send messages.
 
 Required capabilities are read access to this package and authorized X content, writes confined to the user-selected data directory, execution of package Python and the already installed native CLI, and host-provided browser control. Env reads only the noncredential X_LIST_DIGEST_DATA_DIR path. Network access is limited to authorized X/Feishu operations and the local CDP readiness endpoint. The optional Hermes adapter queries process/listener ownership and may restore only a previously authorized dedicated browser. Tool declarations do not grant permission. No task or startup process is enabled without the user's separate explicit consent; local report/history persistence is limited to the requested archive.
